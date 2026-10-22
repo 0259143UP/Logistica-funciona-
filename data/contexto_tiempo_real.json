@@ -1,0 +1,169 @@
+{
+    "ultima_actualizacion": "2026-10-21 20:10:49",
+    "precios_diesel_estado": {
+        "CDMX": 25.48,
+        "Querétaro": 25.15,
+        "Monterrey": 25.85,
+        "Guadalajara": 25.68,
+        "Puebla": 25.24,
+        "Veracruz": 24.95,
+        "León": 25.55,
+        "San Luis Potosí": 25.42,
+        "Tijuana": 24.65,
+        "Mérida": 25.79
+    },
+    "clima_nacional": {
+        "CDMX": {
+            "condicion": "🌫️ Neblina Densa",
+            "temperatura": "13°C",
+            "factor_riesgo": 1.25,
+            "descripcion": "Restricción de velocidad en zonas de montaña y cumbres."
+        },
+        "Querétaro": {
+            "condicion": "🌧️ Lluvia Ligera",
+            "temperatura": "18°C",
+            "factor_riesgo": 1.15,
+            "descripcion": "Piso mojado, reducción sugerida de velocidad en autopistas."
+        },
+        "Monterrey": {
+            "condicion": "⛈️ Lluvia Intensa",
+            "temperatura": "15°C",
+            "factor_riesgo": 1.3,
+            "descripcion": "Visibilidad reducida y riesgo de encharcamientos severos."
+        },
+        "Guadalajara": {
+            "condicion": "☀️ Despejado",
+            "temperatura": "26°C",
+            "factor_riesgo": 1.0,
+            "descripcion": "Condiciones óptimas de visibilidad y piso seco."
+        },
+        "Puebla": {
+            "condicion": "⛈️ Lluvia Intensa",
+            "temperatura": "15°C",
+            "factor_riesgo": 1.3,
+            "descripcion": "Visibilidad reducida y riesgo de encharcamientos severos."
+        },
+        "Veracruz": {
+            "condicion": "⛈️ Lluvia Intensa",
+            "temperatura": "15°C",
+            "factor_riesgo": 1.3,
+            "descripcion": "Visibilidad reducida y riesgo de encharcamientos severos."
+        },
+        "León": {
+            "condicion": "🌧️ Lluvia Ligera",
+            "temperatura": "18°C",
+            "factor_riesgo": 1.15,
+            "descripcion": "Piso mojado, reducción sugerida de velocidad en autopistas."
+        },
+        "San Luis Potosí": {
+            "condicion": "🌧️ Lluvia Ligera",
+            "temperatura": "18°C",
+            "factor_riesgo": 1.15,
+            "descripcion": "Piso mojado, reducción sugerida de velocidad en autopistas."
+        },
+        "Tijuana": {
+            "condicion": "🌧️ Lluvia Ligera",
+            "temperatura": "18°C",
+            "factor_riesgo": 1.15,
+            "descripcion": "Piso mojado, reducción sugerida de velocidad en autopistas."
+        },
+        "Mérida": {
+            "condicion": "⛈️ Lluvia Intensa",
+            "temperatura": "15°C",
+            "factor_riesgo": 1.3,
+            "descripcion": "Visibilidad reducida y riesgo de encharcamientos severos."
+        }
+    },
+    "alertas_x_carreteras": [
+        {
+            "corredor": "CDMX-Querétaro (57D)",
+            "texto": "Así Está el Tránsito en la Autopista México-Querétaro: Registro de Incidentes Hoy - N+",
+            "fecha": "Mon, 19 Oct 2026 15:55:47 GMT",
+            "nivel_riesgo": 0,
+            "keywords": [
+                "monitoreo vial"
+            ]
+        },
+        {
+            "corredor": "CDMX-Querétaro (57D)",
+            "texto": "Bloqueo México-Toluca cumple más de 24 horas: madres buscadoras colapsan rutas - MVS Noticias",
+            "fecha": "Wed, 21 Oct 2026 20:05:00 GMT",
+            "nivel_riesgo": 2,
+            "keywords": [
+                "bloqueo"
+            ]
+        },
+        {
+            "corredor": "CDMX-Puebla (150D)",
+            "texto": "MILENIO. MILENIO · Original audio. - Facebook",
+            "fecha": "Wed, 21 Oct 2026 15:08:16 GMT",
+            "nivel_riesgo": 0,
+            "keywords": [
+                "monitoreo vial"
+            ]
+        },
+        {
+            "corredor": "CDMX-Puebla (150D)",
+            "texto": "Bloqueo en la México-Toluca: protestan familiares de desaparecidos - La Silla Rota",
+            "fecha": "Wed, 21 Oct 2026 20:29:00 GMT",
+            "nivel_riesgo": 2,
+            "keywords": [
+                "bloqueo"
+            ]
+        },
+        {
+            "corredor": "Puebla-Veracruz (150D)",
+            "texto": "Dos choques múltiples paralizan la autopista Puebla-Veracruz en el tramo Esperanza-Maltrata - El Sol de México",
+            "fecha": "Mon, 19 Oct 2026 00:29:40 GMT",
+            "nivel_riesgo": 0,
+            "keywords": [
+                "monitoreo vial"
+            ]
+        },
+        {
+            "corredor": "Puebla-Veracruz (150D)",
+            "texto": "Muere trailero tras volcadura en la autopista Puebla-Orizaba, en Maltrata - La Silla Rota",
+            "fecha": "Wed, 07 Oct 2026 07:00:00 GMT",
+            "nivel_riesgo": 1,
+            "keywords": [
+                "volcadura"
+            ]
+        },
+        {
+            "corredor": "Querétaro-Monterrey (57)",
+            "texto": "[VIDEO] Accidente de tráilers colapsa la carretera 57 - Código San Luis",
+            "fecha": "Mon, 19 Oct 2026 17:43:24 GMT",
+            "nivel_riesgo": 1,
+            "keywords": [
+                "accidente"
+            ]
+        },
+        {
+            "corredor": "Querétaro-Monterrey (57)",
+            "texto": "Por accidente, cierran otra vez la carretera 57 en sentido sur a norte en el tramo conocido como Los Chorros. (El Heraldo de Saltillo/ fotografía tomada de grupo de WhatsApp) - Facebook",
+            "fecha": "Wed, 09 Sep 2026 07:00:00 GMT",
+            "nivel_riesgo": 1,
+            "keywords": [
+                "accidente"
+            ]
+        },
+        {
+            "corredor": "CDMX-Guadalajara (15D)",
+            "texto": "Carreteras Bloqueadas en México Hoy Sábado 17 de Octubre 2026 En Vivo: Últimas Noticias por Vías Cerradas - N+",
+            "fecha": "Sun, 18 Oct 2026 00:12:00 GMT",
+            "nivel_riesgo": 2,
+            "keywords": [
+                "bloqueada"
+            ]
+        },
+        {
+            "corredor": "CDMX-Guadalajara (15D)",
+            "texto": "🚨 #AlMomento | Vuelca pipa con combustible en la autopista Guadalajara-Colima; cierran circulación Este jueves 10 de septiembre, se registró la volcadura de un tractocamión que transportaba dos pipas cargadas con diésel, lo que causó el cierre de la circ - Facebook",
+            "fecha": "Thu, 10 Sep 2026 07:00:00 GMT",
+            "nivel_riesgo": 1,
+            "keywords": [
+                "volcadura"
+            ]
+        }
+    ]
+}
