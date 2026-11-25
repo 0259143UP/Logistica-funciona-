@@ -266,33 +266,72 @@ def interpretar_prompt_ia(texto: str, ciudades: list, paqueterias: list):
                 return ciudades_norm[c_norm]
         return None
 
+    # Cobertura de los 32 estados de México y principales ciudades -> Hub logístico más cercano
     alias_ciudades = [
-        (r"\bestado de mexico\b|\bedo\.?\s*de\s*mex(?:ico)?\b|\bedo\.?\s*mex\b|\bedomex\b|\btoluca\b|\bnaucalpan\b|\btlalnepantla\b|\becatepec\b|\bcuautitlan\b|\btepotzotlan\b|\batizapan\b",
+        (r"\bbaja california sur\b|\bbcs\b|\bla paz\b|\blos cabos\b|\bcabo san lucas\b",
+         ["Tijuana", "Guadalajara", "Monterrey"], "Baja California Sur"),
+        (r"\bbaja california\b|\btijuana\b|\bmexicali\b|\bensenada\b|\btj\b",
+         ["Tijuana", "Monterrey", "Guadalajara"], "Baja California"),
+        (r"\bestado de mexico\b|\bedo\.?\s*de\s*mex(?:ico)?\b|\bedo\.?\s*mex\b|\bedomex\b|\btoluca\b|\bnaucalpan\b|\btlalnepantla\b|\becatepec\b|\bcuautitlan\b|\btepotzotlan\b|\batizapan\b|\btexcoco\b",
          ["Estado de México", "Toluca", "CDMX"], "Estado de México"),
         (r"\bciudad de mexico\b|\bcdmx\b|\bdf\b|\bvalle de mexico\b",
          ["CDMX", "Ciudad de México"], None),
-        (r"\bnuevo leon\b|\bmonterrey\b|\bmty\b|\bapodaca\b|\bsanta catarina\b",
+        (r"\bnuevo leon\b|\bmonterrey\b|\bmty\b|\bapodaca\b|\bsanta catarina\b|\bsan nicolas\b|\bguadalupe\b",
          ["Monterrey"], None),
-        (r"\bjalisco\b|\bguadalajara\b|\bgdl\b|\bzapopan\b",
+        (r"\bsan luis potosi\b|\bslp\b",
+         ["San Luis Potosí", "San Luis Potosi", "Querétaro", "León"], "San Luis Potosí"),
+        (r"\bquintana roo\b|\bq\.?\s*roo\b|\bcancun\b|\bplaya del carmen\b|\bchetumal\b",
+         ["Mérida", "Merida"], "Quintana Roo"),
+        (r"\bjalisco\b|\bguadalajara\b|\bgdl\b|\bzapopan\b|\btlaquepaque\b|\bpuerto vallarta\b",
          ["Guadalajara"], None),
-        (r"\bguanajuato\b|\bgto\b|\bsilao\b|\birapuato\b|\bleon\b",
-         ["León", "Leon"], None),
-        (r"\bqueretaro\b|\bqro\b",
+        (r"\bguanajuato\b|\bgto\b|\bsilao\b|\birapuato\b|\bcelaya\b|\bsalamanca\b|\bleon\b",
+         ["León", "Leon", "Querétaro"], None),
+        (r"\bqueretaro\b|\bqro\b|\bsan juan del rio\b",
          ["Querétaro", "Queretaro"], None),
-        (r"\bpuebla\b|\bpue\b",
+        (r"\bpuebla\b|\bpue\b|\btehuacan\b",
          ["Puebla"], None),
-        (r"\bbaja california\b|\btijuana\b|\btj\b",
-         ["Tijuana"], None),
-        (r"\bveracruz\b|\bver\b",
-         ["Veracruz"], None),
         (r"\byucatan\b|\bmerida\b",
          ["Mérida", "Merida"], None),
-        (r"\bcoahuila\b|\bsaltillo\b",
-         ["Saltillo"], None),
-        (r"\bsan luis potosi\b|\bslp\b",
-         ["San Luis Potosí", "San Luis Potosi"], None),
+        (r"\bveracruz\b|\bver\b|\bxalapa\b|\bcoatzacoalcos\b|\bcordoba\b|\borizaba\b",
+         ["Veracruz", "Puebla"], "Veracruz"),
         (r"\baguascalientes\b|\bags\b",
-         ["Aguascalientes"], None),
+         ["Aguascalientes", "León", "San Luis Potosí", "Guadalajara"], "Aguascalientes"),
+        (r"\bcampeche\b",
+         ["Mérida", "Veracruz", "Puebla"], "Campeche"),
+        (r"\bchiapas\b|\btuxtla(?: gutierrez)?\b|\btapachula\b",
+         ["Veracruz", "Puebla", "Mérida"], "Chiapas"),
+        (r"\bchihuahua\b|\bciudad juarez\b|\bcd\.?\s*juarez\b|\bjuarez\b",
+         ["Monterrey", "Tijuana", "San Luis Potosí"], "Chihuahua"),
+        (r"\bcoahuila\b|\bsaltillo\b|\btorreon\b|\bmonclova\b",
+         ["Saltillo", "Monterrey"], "Coahuila"),
+        (r"\bcolima\b|\bmanzanillo\b",
+         ["Guadalajara", "León"], "Colima"),
+        (r"\bdurango\b",
+         ["Monterrey", "Guadalajara", "San Luis Potosí"], "Durango"),
+        (r"\bguerrero\b|\bacapulco\b|\bchilpancingo\b",
+         ["CDMX", "Puebla"], "Guerrero"),
+        (r"\bhidalgo\b|\bpachuca\b|\btula\b",
+         ["CDMX", "Puebla", "Querétaro"], "Hidalgo"),
+        (r"\bmichoacan\b|\bmorelia\b|\blazaro cardenas\b|\buruapan\b",
+         ["León", "Guadalajara", "Querétaro"], "Michoacán"),
+        (r"\bmorelos\b|\bcuernavaca\b|\bcuautla\b",
+         ["CDMX", "Puebla"], "Morelos"),
+        (r"\bnayarit\b|\btepic\b",
+         ["Guadalajara"], "Nayarit"),
+        (r"\boaxaca\b",
+         ["Puebla", "Veracruz", "CDMX"], "Oaxaca"),
+        (r"\bsinaloa\b|\bculiacan\b|\bmazatlan\b|\blos mochis\b",
+         ["Guadalajara", "Monterrey", "Tijuana"], "Sinaloa"),
+        (r"\bsonora\b|\bhermosillo\b|\bnogales\b|\bciudad obregon\b",
+         ["Tijuana", "Monterrey", "Guadalajara"], "Sonora"),
+        (r"\btabasco\b|\bvillahermosa\b",
+         ["Veracruz", "Mérida", "Puebla"], "Tabasco"),
+        (r"\btamaulipas\b|\breynosa\b|\bnuevo laredo\b|\btampico\b|\bmatamoros\b|\bciudad victoria\b",
+         ["Monterrey", "San Luis Potosí", "Veracruz"], "Tamaulipas"),
+        (r"\btlaxcala\b",
+         ["Puebla", "CDMX"], "Tlaxcala"),
+        (r"\bzacatecas\b",
+         ["San Luis Potosí", "León", "Guadalajara"], "Zacatecas"),
     ]
 
     for c in ciudades:
@@ -315,9 +354,11 @@ def interpretar_prompt_ia(texto: str, ciudades: list, paqueterias: list):
                 ocupados.append((m.start(), m.end()))
                 encontradas.append((m.start(), ciudad_real))
                 if etiqueta_alias and normalizar_texto(ciudad_real) != normalizar_texto(etiqueta_alias):
-                    notas_mapeo.append(f"**{etiqueta_alias}** se vinculó al nodo metropolitano **{ciudad_real}**")
+                    notas_mapeo.append(f"**{etiqueta_alias}** ➔ hub **{ciudad_real}**")
 
     encontradas.sort(key=lambda x: x[0])
+
+    mismo_hub = len(encontradas) >= 2 and encontradas[0][1] == encontradas[1][1]
 
     ciudades_detectadas = []
     for pos, c in encontradas:
@@ -375,7 +416,13 @@ def interpretar_prompt_ia(texto: str, ciudades: list, paqueterias: list):
 
     aviso = None
     aviso_tipo = "info"
-    if (orig_ia and not dest_ia and re.search(r"\b(?:a|al|hacia|para)\b", t)) or (dest_ia and not orig_ia and re.search(r"\b(?:de|desde)\b", t)):
+    if mismo_hub:
+        aviso = (
+            f"📍 Ambos puntos pertenecen a la misma zona operativa (**{encontradas[0][1]}**). "
+            f"Selecciona un hub de destino distinto en el menú lateral."
+        )
+        aviso_tipo = "warning"
+    elif (orig_ia and not dest_ia and re.search(r"\b(?:a|al|hacia|para)\b", t)) or (dest_ia and not orig_ia and re.search(r"\b(?:de|desde)\b", t)):
         detectada = orig_ia or dest_ia
         faltante = "destino" if orig_ia else "origen"
         aviso = (
@@ -387,7 +434,7 @@ def interpretar_prompt_ia(texto: str, ciudades: list, paqueterias: list):
         aviso = f"No se detectaron ciudades del catálogo ({', '.join(ciudades)}) en tu consulta."
         aviso_tipo = "warning"
     elif notas_mapeo:
-        aviso = "📍 " + "; ".join(dict.fromkeys(notas_mapeo)) + "."
+        aviso = "📍 Cobertura regional (Hub & Spoke): " + " • ".join(dict.fromkeys(notas_mapeo)) + "."
         aviso_tipo = "info"
 
     return orig_ia, dest_ia, paq_ia, peso_ia, alerta_ia, aviso, aviso_tipo
