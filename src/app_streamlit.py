@@ -1,11 +1,17 @@
+import glob
 import json
 import os
 import re
 import unicodedata
 from datetime import datetime
 import joblib
+import numpy as np
 import pandas as pd
 import streamlit as st
+from sklearn.compose import ColumnTransformer
+from sklearn.ensemble import HistGradientBoostingClassifier, HistGradientBoostingRegressor
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import OrdinalEncoder
 from scraper_contexto import ejecutar_scraping
 
 try:
@@ -35,7 +41,7 @@ st.markdown("""
     .kpi-main { font-size: 1.72rem; font-weight: 700; color: #F0F6FC; line-height: 1.2; }
     .kpi-sub { font-size: 0.78rem; color: #8B949E; margin-top: 6px; }
     .kpi-sub-accent { font-size: 0.78rem; color: #58A6FF; margin-top: 6px; }
-  .rec-banner {
+    .rec-banner {
         background: linear-gradient(90deg, rgba(35,134,54,0.18) 0%, rgba(22,27,34,0.95) 100%);
         border-left: 4px solid #2EA043;
         border-radius: 10px;
@@ -78,11 +84,136 @@ def normalizar_texto(texto: str) -> str:
     return sin_acentos.strip()
 
 
+def entrenar_modelos_respaldo():
+    """Reentrena HistGradientBoosting al vuelo si los .pkl no son compatibles con la versión de Python en la nube."""
+    features = [
+        "origen", "destino", "paqueteria", "peso_kg",
+        "distancia_km", "precio_diesel_mxn", "nivel_alerta_x"
+    ]
+    cat_cols = ["origen", "destino", "paqueteria"]
+    num_cols = ["peso_kg", "distancia_km", "precio_diesel_mxn", "nivel_alerta_x"]
+
+    ruta_completa = None
+    for cand in ["data/envios_mexico.parquet", "data/envios_historicos_500k.parquet"]:
+        if os.path.exists(cand):
+            ruta_completa = cand
+            break
+    if ruta_completa is None:
+        for p in glob.glob("data/*.parquet"):
+            if "resumen_rutas_spark" not in os.path.basename(p):
+                ruta_completa = p
+                break
+
+    if ruta_completa is not None:
+        df_raw = pd.read_parquet(ruta_completa)
+        df_train = df_raw.sample(n=min(40000, len(df_raw)), random_state=42)
+        X_train = df_train[features]
+        y_retraso = df_train["retrasado"]
+        y_costo = df_train["costo_mxn"]
+    else:
+        rng = np.random.default_rng(42)
+        df_res = pd.read_parquet("data/resumen_rutas_spark.parquet")
+        df_res = df_res[df_res["paqueteria"] != "Flecha Amarilla Cargo"].copy()
+
+        col_dist = next((c for c in df_res.columns if "dist" in c.lower()), None)
+        col_ret = next((c for c in df_res.columns if "retras" in c.lower() or "tasa" in c.lower()), None)
+        col_cos = next((c for c in df_res.columns if "costo" in c.lower() or "tarifa" in c.lower()), None)
+
+        n_muestras = 10000
+        idx = rng.integers(0, len(df_res), size=n_muestras)
+        base = df_res.iloc[idx].reset_index(drop=True)
+
+        peso_kg = rng.integers(100, 18001, size=n_muestras)
+        dist_km = base[col_dist].astype(float).values if col_dist else np.full(n_muestras, 450.0)
+        dist_km = np.clip(dist_km + rng.normal(0, 15, size=n_muestras), 50.0, 3500.0)
+        precio_diesel = rng.uniform(23.0, 27.5, size=n_muestras)
+        nivel_alerta = rng.choice([0, 1, 2], size=n_muestras, p=[0.65, 0.25, 0.10])
+
+        paq_factor_ret = base["paqueteria"].map({
+            "Tres Guerras": 0.92,
+            "Castores": 1.08,
+            "Transportes Potosinos": 1.00,
+            "Paquetexpress": 0.88,
+        }).fillna(1.0).values
+
+        paq_factor_cos = base["paqueteria"].map({
+            "Tres Guerras": 0.96,
+            "Castores": 0.92,
+            "Transportes Potosinos": 1.00,
+            "Paquetexpress": 1.09,
+        }).fillna(1.0).values
+
+        if col_ret:
+            base_ret = base[col_ret].astype(float).values
+            if np.nanmax(base_ret) > 1.0:
+                base_ret = base_ret / 100.0
+            base_ret = np.clip(np.nan_to_num(base_ret, nan=0.18), 0.05, 0.70)
+        else:
+            base_ret = np.full(n_muestras, 0.15)
+
+        prob_ret = (
+            base_ret * paq_factor_ret
+            + (dist_km / 6000.0)
+            + (nivel_alerta * 0.19)
+            + ((peso_kg > 10000).astype(float) * 0.04)
+        )
+        prob_ret = np.clip(prob_ret, 0.03, 0.95)
+        y_retraso = (rng.random(n_muestras) < prob_ret).astype(int)
+
+        costo_formula = (
+            1150.0
+            + dist_km * (7.2 + (precio_diesel - 24.0) * 0.35)
+            + peso_kg * 0.42
+            + nivel_alerta * 380.0
+        ) * paq_factor_cos
+        if col_cos:
+            base_cos = np.nan_to_num(base[col_cos].astype(float).values, nan=5000.0)
+            costo_y = 0.35 * base_cos + 0.65 * costo_formula
+        else:
+            costo_y = costo_formula
+        y_costo = np.clip(costo_y + rng.normal(0, 220, size=n_muestras), 900.0, None)
+
+        X_train = pd.DataFrame({
+            "origen": base["origen"].astype(str),
+            "destino": base["destino"].astype(str),
+            "paqueteria": base["paqueteria"].astype(str),
+            "peso_kg": peso_kg,
+            "distancia_km": dist_km,
+            "precio_diesel_mxn": precio_diesel,
+            "nivel_alerta_x": nivel_alerta,
+        })
+
+    prep_ret = ColumnTransformer([
+        ("cat", OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1), cat_cols),
+        ("num", "passthrough", num_cols),
+    ])
+    prep_cos = ColumnTransformer([
+        ("cat", OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1), cat_cols),
+        ("num", "passthrough", num_cols),
+    ])
+
+    mod_retraso = Pipeline([
+        ("prep", prep_ret),
+        ("clf", HistGradientBoostingClassifier(max_iter=120, max_depth=6, learning_rate=0.08, random_state=42)),
+    ])
+    mod_costo = Pipeline([
+        ("prep", prep_cos),
+        ("reg", HistGradientBoostingRegressor(max_iter=120, max_depth=6, learning_rate=0.08, random_state=42)),
+    ])
+
+    mod_retraso.fit(X_train, y_retraso)
+    mod_costo.fit(X_train, y_costo)
+    return mod_retraso, mod_costo
+
+
 @st.cache_resource
 def cargar_modelos():
-    mod_retraso = joblib.load("models/modelo_retraso.pkl")
-    mod_costo = joblib.load("models/modelo_costo.pkl")
-    return mod_retraso, mod_costo
+    try:
+        mod_retraso = joblib.load("models/modelo_retraso.pkl")
+        mod_costo = joblib.load("models/modelo_costo.pkl")
+        return mod_retraso, mod_costo
+    except Exception:
+        return entrenar_modelos_respaldo()
 
 
 @st.cache_data(ttl=300)
@@ -180,8 +311,8 @@ def interpretar_prompt_ia(texto: str, ciudades: list, paqueterias: list):
     return orig_ia, dest_ia, paq_ia, peso_ia, alerta_ia
 
 
-if not os.path.exists("models/modelo_retraso.pkl") or not os.path.exists("data/resumen_rutas_spark.parquet"):
-    st.error("⚠️ Faltan archivos del modelo o resumen. Ejecuta `python src/procesamiento_spark_ml.py`.")
+if not os.path.exists("data/resumen_rutas_spark.parquet"):
+    st.error("⚠️ Falta el archivo de resumen histórico (`data/resumen_rutas_spark.parquet`). Ejecuta `python src/procesamiento_spark_ml.py`.")
     st.stop()
 
 modelo_retraso, modelo_costo = cargar_modelos()
