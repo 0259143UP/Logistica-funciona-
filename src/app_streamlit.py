@@ -257,21 +257,86 @@ def calcular_tiempo_ruta(distancia_km: float, factor_clima: float, nivel_alerta:
 
 def interpretar_prompt_ia(texto: str, ciudades: list, paqueterias: list):
     t = normalizar_texto(texto)
+    ciudades_norm = {normalizar_texto(c): c for c in ciudades}
 
-    encontradas = []
+    def buscar_en_catalogo(candidatos):
+        for cand in candidatos:
+            c_norm = normalizar_texto(cand)
+            if c_norm in ciudades_norm:
+                return ciudades_norm[c_norm]
+        return None
+
+    alias_ciudades = [
+        (r"\bestado de mexico\b|\bedo\.?\s*de\s*mex(?:ico)?\b|\bedo\.?\s*mex\b|\bedomex\b|\btoluca\b|\bnaucalpan\b|\btlalnepantla\b|\becatepec\b|\bcuautitlan\b|\btepotzotlan\b|\batizapan\b",
+         ["Estado de México", "Toluca", "CDMX"], "Estado de México"),
+        (r"\bciudad de mexico\b|\bcdmx\b|\bdf\b|\bvalle de mexico\b",
+         ["CDMX", "Ciudad de México"], None),
+        (r"\bnuevo leon\b|\bmonterrey\b|\bmty\b|\bapodaca\b|\bsanta catarina\b",
+         ["Monterrey"], None),
+        (r"\bjalisco\b|\bguadalajara\b|\bgdl\b|\bzapopan\b",
+         ["Guadalajara"], None),
+        (r"\bguanajuato\b|\bgto\b|\bsilao\b|\birapuato\b|\bleon\b",
+         ["León", "Leon"], None),
+        (r"\bqueretaro\b|\bqro\b",
+         ["Querétaro", "Queretaro"], None),
+        (r"\bpuebla\b|\bpue\b",
+         ["Puebla"], None),
+        (r"\bbaja california\b|\btijuana\b|\btj\b",
+         ["Tijuana"], None),
+        (r"\bveracruz\b|\bver\b",
+         ["Veracruz"], None),
+        (r"\byucatan\b|\bmerida\b",
+         ["Mérida", "Merida"], None),
+        (r"\bcoahuila\b|\bsaltillo\b",
+         ["Saltillo"], None),
+        (r"\bsan luis potosi\b|\bslp\b",
+         ["San Luis Potosí", "San Luis Potosi"], None),
+        (r"\baguascalientes\b|\bags\b",
+         ["Aguascalientes"], None),
+    ]
+
     for c in ciudades:
         c_norm = normalizar_texto(c)
-        if c_norm == "cdmx":
-            patron = r"\bcdmx\b|\bciudad de mexico\b|\bdf\b"
-        else:
-            patron = rf"\b{re.escape(c_norm)}\b"
-        m = re.search(patron, t)
-        if m:
-            encontradas.append((m.start(), c))
+        alias_ciudades.append((rf"\b{re.escape(c_norm)}\b", [c], None))
+
+    encontradas = []
+    ocupados = []
+    notas_mapeo = []
+
+    def se_solapa(inicio, fin):
+        return any(not (fin <= s or inicio >= e) for s, e in ocupados)
+
+    for patron, candidatos, etiqueta_alias in alias_ciudades:
+        ciudad_real = buscar_en_catalogo(candidatos)
+        if not ciudad_real:
+            continue
+        for m in re.finditer(patron, t):
+            if not se_solapa(m.start(), m.end()):
+                ocupados.append((m.start(), m.end()))
+                encontradas.append((m.start(), ciudad_real))
+                if etiqueta_alias and normalizar_texto(ciudad_real) != normalizar_texto(etiqueta_alias):
+                    notas_mapeo.append(f"**{etiqueta_alias}** se vinculó al nodo metropolitano **{ciudad_real}**")
+
     encontradas.sort(key=lambda x: x[0])
 
-    orig_ia = encontradas[0][1] if len(encontradas) >= 1 else None
-    dest_ia = encontradas[1][1] if len(encontradas) >= 2 and encontradas[1][1] != orig_ia else None
+    ciudades_detectadas = []
+    for pos, c in encontradas:
+        if c not in [x[1] for x in ciudades_detectadas]:
+            ciudades_detectadas.append((pos, c))
+
+    orig_ia, dest_ia = None, None
+    if len(ciudades_detectadas) >= 2:
+        orig_ia, dest_ia = ciudades_detectadas[0][1], ciudades_detectadas[1][1]
+        m_desde = re.search(r"\bdesde\b", t)
+        if m_desde and ciudades_detectadas[0][0] < m_desde.start() < ciudades_detectadas[1][0]:
+            orig_ia, dest_ia = dest_ia, orig_ia
+    elif len(ciudades_detectadas) == 1:
+        pos0, c0 = ciudades_detectadas[0]
+        prefijo = t[max(0, pos0 - 10):pos0]
+        if re.search(r"\b(?:a|al|hacia|para)\s+$", prefijo):
+            dest_ia = c0
+        else:
+            orig_ia = c0
 
     paq_ia = None
     alias_paq = {
@@ -308,7 +373,24 @@ def interpretar_prompt_ia(texto: str, ciudades: list, paqueterias: list):
     elif any(pal in t for pal in ["normal", "libre", "sin trafico", "despejado"]):
         alerta_ia = 0
 
-    return orig_ia, dest_ia, paq_ia, peso_ia, alerta_ia
+    aviso = None
+    aviso_tipo = "info"
+    if (orig_ia and not dest_ia and re.search(r"\b(?:a|al|hacia|para)\b", t)) or (dest_ia and not orig_ia and re.search(r"\b(?:de|desde)\b", t)):
+        detectada = orig_ia or dest_ia
+        faltante = "destino" if orig_ia else "origen"
+        aviso = (
+            f"Solo se reconoció **{detectada}**. El {faltante} escrito no forma parte del catálogo actual "
+            f"({', '.join(ciudades)}), por lo que se conservó la selección anterior."
+        )
+        aviso_tipo = "warning"
+    elif not orig_ia and not dest_ia and len(t) > 3:
+        aviso = f"No se detectaron ciudades del catálogo ({', '.join(ciudades)}) en tu consulta."
+        aviso_tipo = "warning"
+    elif notas_mapeo:
+        aviso = "📍 " + "; ".join(dict.fromkeys(notas_mapeo)) + "."
+        aviso_tipo = "info"
+
+    return orig_ia, dest_ia, paq_ia, peso_ia, alerta_ia, aviso, aviso_tipo
 
 
 if not os.path.exists("data/resumen_rutas_spark.parquet"):
@@ -346,6 +428,8 @@ if st.session_state.get("ai_pending"):
         st.session_state.peso_sel = max(100, min(18000, int(pend["peso"])))
     if pend.get("alerta") in [0, 1, 2]:
         st.session_state.alerta_sel = pend["alerta"]
+    st.session_state.ai_aviso = pend.get("aviso")
+    st.session_state.ai_aviso_tipo = pend.get("aviso_tipo", "info")
 
 destinos_disponibles = [c for c in ciudades if c != st.session_state.origen_sel]
 if st.session_state.destino_sel not in destinos_disponibles:
@@ -504,15 +588,23 @@ with tab1:
         ejecutar_ia = st.button("🚀 Cotizar con IA", type="primary", use_container_width=True)
 
     if ejecutar_ia and prompt_usuario.strip():
-        o_ia, d_ia, p_ia, w_ia, a_ia = interpretar_prompt_ia(prompt_usuario, ciudades, paqueterias)
+        o_ia, d_ia, p_ia, w_ia, a_ia, aviso_ia, tipo_aviso_ia = interpretar_prompt_ia(prompt_usuario, ciudades, paqueterias)
         st.session_state.ai_pending = {
             "origen": o_ia,
             "destino": d_ia,
             "paqueteria": p_ia,
             "peso": w_ia,
-            "alerta": a_ia
+            "alerta": a_ia,
+            "aviso": aviso_ia,
+            "aviso_tipo": tipo_aviso_ia
         }
         recargar_app()
+
+    if st.session_state.get("ai_aviso"):
+        if st.session_state.get("ai_aviso_tipo") == "warning":
+            st.warning(st.session_state.ai_aviso)
+        else:
+            st.info(st.session_state.ai_aviso)
 
     if ahorro > 50 and mejor_paq != paqueteria:
         extra_txt = f"y ahorras <strong>${ahorro:,.2f} MXN</strong> frente a {paqueteria}"
